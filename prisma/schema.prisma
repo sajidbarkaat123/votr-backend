@@ -1,0 +1,276 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum CampaignType {
+    DISCOUNTED_PRODUCTS
+    EARLY_ACCESS_TO_PRODUCTS
+    EARLY_ACCESS_TO_EVENTS
+    EXCLUSIVE_EVENTS
+}
+
+enum DeliveryMethodType {
+    EMAIL
+    IN_APP_NOTIFICATION
+    MOBILE_APP_MARKET_PLACE
+    WEB_APP_MARKET_PLACE
+}
+
+enum Gender {
+    MALE
+    FEMALE
+    ALL
+}
+
+enum RangeType {
+    AGE
+    INCOME
+    STOCK_OWNERSHIP
+}       
+
+model User {
+    id        String   @id @default(uuid())
+    name      String
+    email     String   @unique
+    password  String
+    roleId    String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted   Boolean  @default(false)
+    
+    Role      Role?    @relation(fields: [roleId], references: [id])
+}
+
+model Role {
+    id        String   @id @default(uuid())
+    name      String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted   Boolean  @default(false)
+    
+    User      User[]
+}
+
+model Campaign {
+    id                     String                  @id @default(uuid())
+    title                  String
+    description            String
+    campaignBudget         Float
+    campaignDetails        Json
+    campaignGoals          String
+    campaignOwner          String
+    notes                  String
+    startDate              DateTime
+    endDate                DateTime?
+    endAutomatically       Boolean                 @default(false)
+    status                 String
+    category               String
+    isPreOrder             Boolean?                @default(false)
+    createdAt              DateTime                @default(now())
+    updatedAt              DateTime                @updatedAt
+    deleted                Boolean                 @default(false)
+    campaignAccess         String   
+    removeCampaignAccess   String
+    redeemMethod           String
+    campaignType           CampaignType
+    invoiceId String?
+    invoice Invoice?
+    
+    shareHolders           ShareHolder[]
+    DeliveryMethod         DeliveryMethod[]
+    targetShareHoldersInfo TargetShareHoldersInfo?
+    CampaignEmails CampaignEmails[]
+    CampaignOfferRedeemed CampaignOfferRedeemed[]
+
+    CampaignRewardClaim CampaignRewardClaim[]
+
+    CampaignClicks CampaignClicks[]
+
+}
+
+model ShareHolder {
+    id         String    @id @default(uuid())
+    name       String
+    email      String
+    country    String
+    region     String
+    age        Int
+    gender     String
+    income     Float
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    deleted    Boolean   @default(false)
+
+    shares     Shares[]
+    campaigns  Campaign[]
+    CampaignOfferRedeemed CampaignOfferRedeemed[]
+
+}
+
+model Shares {
+    id            String      @id @default(uuid())
+    companyId     String
+    brookerId     String
+    shareHolderId String
+    price         Float
+    createdAt     DateTime    @default(now())
+    updatedAt     DateTime    @updatedAt
+    deleted       Boolean     @default(false)
+    
+    company       Company     @relation(fields: [companyId], references: [id])
+    brooker       Brooker     @relation(fields: [brookerId], references: [id])
+    shareHolder   ShareHolder @relation(fields: [shareHolderId], references: [id])
+}
+
+model Brooker {
+    id         String   @id @default(uuid())
+    name       String
+    email      String
+    country    String
+    age        Int
+    status     String
+    userShares Shares[]
+
+    CampaignRewardClaim CampaignRewardClaim[]
+    brokerBreakdowns BrokerBreakdown[]
+}
+
+model TargetShareHoldersInfo {
+    id                     String   @id @default(uuid())
+    region                 String[]
+    age                    String
+    income                 String
+    minstockOwnerShipStake Int ?
+    maxstockOwnerShipStake Int?
+    stockOwninBetween      Json   ?
+    campaignId             String   @unique
+    createdAt              DateTime @default(now())
+    updatedAt              DateTime @updatedAt
+    deleted                Boolean  @default(false)
+    
+    gender                 Gender
+    campaign               Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model DeliveryMethod {
+    id           String             @id @default(uuid())
+    maxCount     Int
+    preferedTime String
+    campaignId   String
+    createdAt    DateTime           @default(now())
+    updatedAt    DateTime           @updatedAt
+    deleted      Boolean            @default(false)
+    type         DeliveryMethodType
+
+    @@unique([campaignId, type])
+    
+    Campaign     Campaign           @relation(fields: [campaignId], references: [id])
+}
+
+model Company {
+    id        String   @id @default(uuid())
+    name      String
+    email     String   @unique
+    country   String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted   Boolean  @default(false)
+
+    shares    Shares[]
+}
+
+
+model Ranges{
+    id       String   @id @default(uuid())
+    type RangeType
+    range String
+}
+
+
+
+
+model CampaignClicks {
+    id String @id @default(uuid())
+    campaignId String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted Boolean @default(false)
+    
+    campaign Campaign @relation(fields: [campaignId], references: [id])
+}
+
+
+model CampaignEmails{
+    id String @id @default(uuid())
+    isOpened Boolean
+    campaignId String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted Boolean @default(false)
+    
+    campaign Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model CampaignOfferRedeemed{
+    id String @id @default(uuid())
+    shareHolderId String
+    campaignId String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted Boolean @default(false)
+    
+    campaign Campaign @relation(fields: [campaignId], references: [id])
+    shareHolder ShareHolder @relation(fields: [shareHolderId], references: [id])
+}
+
+model CampaignRewardClaim{
+    id String @id @default(uuid())
+    brokerId String
+    broker Brooker @relation(fields: [brokerId], references: [id])
+    campaignId String
+    campaign Campaign @relation(fields: [campaignId], references: [id])
+    
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted Boolean @default(false)
+} 
+
+
+model Invoice {
+    id String @id @default(uuid())
+    notificationCost Float
+    micillenousCost Float
+    audienceCost Float @default(0)
+    reachCost Float @default(0)
+    taxRate Float @default(0.05)
+    campaignTransactionCost Float @default(0)
+    bogoDiscount Float @default(0)
+    notes String?
+    status String @default("PENDING")
+    
+    campaignId String @unique
+    campaign Campaign @relation(fields: [campaignId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted Boolean @default(false)
+    
+    brokerBreakdowns BrokerBreakdown[]
+}
+
+model BrokerBreakdown {
+    id String @id @default(uuid())
+    brokerId String
+    broker Brooker @relation(fields: [brokerId], references: [id])
+    invoiceId String
+    invoice Invoice @relation(fields: [invoiceId], references: [id])
+    reachCost Float @default(0)
+    engagementFee Float @default(0)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deleted Boolean @default(false)
+}
